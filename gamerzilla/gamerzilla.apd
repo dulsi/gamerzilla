@@ -1,0 +1,5 @@
+version: 1
+url: $baseurl/gamerzilla/$nick
+requires: local_channel
+name: Gamerzilla
+photo: icon:cog

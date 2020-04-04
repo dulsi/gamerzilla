@@ -14,13 +14,22 @@ use Zotlabs\Extend\Hook;
 use Zotlabs\Extend\Route;
 
 function gamerzilla_load(){
+	Hook::register('api_register','addon/gamerzilla/gamerzilla.php','gamerzilla_api_register');
 	Route::register('addon/gamerzilla/Mod_Gamerzilla.php','gamerzilla');
 	gamerzilla_dbsetup();
 }
 
 
 function gamerzilla_unload(){
+	Hook::unregister_by_file('addon/gamerzilla/gamerzilla.php');
 	Route::unregister('addon/gamerzilla/Mod_Gamerzilla.php','gamerzilla');
+}
+
+function gamerzilla_api_register($x) {
+
+	api_register_func('api/gamerzilla/games','api_games', true);
+	api_register_func('api/gamerzilla/game','api_game', true);
+	api_register_func('api/gamerzilla/game/add','api_game_add', true);
 }
 
 function gamerzilla_getsysconfig($param) {
@@ -43,7 +52,8 @@ function gamerzilla_dbsetup () {
 			"CREATE TABLE gamerzilla_game (
 				id int(10) UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 				short_name varvhar(128),
-				game_name varchar(128)
+				game_name varchar(128),
+				vernum int
 				) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;
 			",
 			"alter table gamerzilla_game add index (short_name)",
@@ -126,4 +136,93 @@ function gamerzilla_dbsetup () {
 	$response = UPDATE_SUCCESS;
 	logger("GAMERZILLA: run db_upgrade hooks",LOGGER_DEBUG);
 	return $response;
+}
+
+function api_games($type) {
+	$r = q("select short_name, game_name, (select count(*) from gamerzilla_userstat u2 where u2.achieved = 1 and g.id = u2.game_id and u2.uuid = %d) as earned, (select count(*) from gamerzilla_trophy t where g.id = t.game_id) as total_trophy from gamerzilla_game g where g.id in (select game_id from gamerzilla_userstat u where u.uuid = %d)",
+			local_channel(),
+			local_channel()
+		);
+	$items = [];
+	if ($r) {
+		for($x = 0; $x < count($r); $x ++) {
+			$items[$x] = ['shortname' => $r[$x]["short_name"], 'name' => $r[$x]["game_name"], 'earned' => $r[$x]["earned"], 'total' => $r[$x]["total_trophy"] ];
+		}
+	}
+	return api_apply_template('games', $type, array('$games' => $items));
+}
+
+function api_game($type) {
+	$r_game = q("select id, short_name, game_name, vernum from gamerzilla_game g where g.short_name = '%s'",
+			dbesc($_POST["game"])
+		);
+	$game = [];
+	if ($r_game) {
+		$game = ['id' => $r_game[0]["id"], 'shortname' => $r_game[0]["short_name"], 'name' => $r_game[0]["game_name"], 'version' => $r_game[0]["vernum"] ];
+	}
+	$r = q("select trophy_name, trophy_desc, progress, max_progress, coalesce(achieved, 0) achieved from gamerzilla_game g, gamerzilla_trophy t left outer join gamerzilla_userstat u on t.game_id = u.game_id and t.id = u.trophy_id and u.uuid = %d where g.id = t.game_id and g.id = %d order by achieved desc, t.id",
+			local_channel(),
+			$r_game[0]["id"]
+		);
+	$items = [];
+	if ($r) {
+		for($x = 0; $x < count($r); $x ++) {
+			$items[$x] = ['trophy_name' => $r[$x]["trophy_name"], 'trophy_desc' => $r[$x]["trophy_desc"], 'achieved' => $r[$x]["achieved"], 'progress' => $r[$x]["progress"], 'max_progress' => $r[$x]["max_progress"] ];
+		}
+	}
+	$game["trophy"] = $items;
+	return api_apply_template('game', $type, array('$game' => $game));
+}
+
+function api_game_add($type) {
+	$game = json_decode($_POST["game"], true);
+	$r_game = q("select id from gamerzilla_game g where g.short_name = '%s'",
+			dbesc($game["shortname"])
+		);
+	if ($r_game) {
+		$r = q("update gamerzilla_game set game_name= '%s', vernum = %d where id = %d",
+				dbesc($game["name"]),
+				$game["version"],
+				$r_game[0]["id"]
+			);
+	}
+	else {
+		$r = q("insert into gamerzilla_game(short_name, game_name, vernum) values ('%s', '%s', %d)",
+				dbesc($game["shortname"]),
+				dbesc($game["name"]),
+				$game["version"]
+			);
+		$r_game = q("select id from gamerzilla_game g where g.short_name = '%s'",
+				dbesc($game["shortname"])
+			);
+	}
+	$r_trophy = q("select id, trophy_name, trophy_desc, max_progress from gamerzilla_trophy g where g.game_id = %d",
+			$r_game[0]["id"]
+		);
+	$trophy = $game["trophy"];
+	for ($x = 0; $x < count($trophy); $x ++) {
+		$found = false;
+		if ($r_trophy) {
+			for ($y = 0; $y < count($r_trophy); $y ++) {
+				if (strcmp($r_trophy[$y]['trophy_name'], $trophy[$x]["trophy_name"]) == 0) {
+					$r = q("update gamerzilla_trophy set trophy_name = '%s', trophy_desc= '%s', max_progress = %d where id = %d",
+							dbesc($trophy[$x]["trophy_name"]),
+							dbesc($trophy[$x]["trophy_desc"]),
+							$trophy[$x]["max_progress"],
+							$r_trophy[$y]["id"]
+						);
+					$found = true;
+				}
+			}
+		}
+		if (!$found) {
+			$r = q("insert into gamerzilla_trophy(game_id, trophy_name, trophy_desc, max_progress) values (%d, '%s', '%s', %d)",
+					$r_game[0]["id"],
+					dbesc($trophy[$x]["trophy_name"]),
+					dbesc($trophy[$x]["trophy_desc"]),
+					$trophy[$x]["max_progress"]
+				);
+		}
+	}
+	return api_apply_template('game', $type, array('$game' => $game));
 }

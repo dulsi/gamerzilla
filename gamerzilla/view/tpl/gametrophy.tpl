@@ -9,7 +9,7 @@
 			<table class="w-100">
 				<tr>
 					<th width=60%>Name</th>
-					<th width=20%>Acheived</th>
+					<th width=20%>Achieved</th>
 					<th width=20%>Progress</th>
 				</tr>
 				{{foreach $items as $item}}

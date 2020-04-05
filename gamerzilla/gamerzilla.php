@@ -30,6 +30,8 @@ function gamerzilla_api_register($x) {
 	api_register_func('api/gamerzilla/games','api_games', true);
 	api_register_func('api/gamerzilla/game','api_game', true);
 	api_register_func('api/gamerzilla/game/add','api_game_add', true);
+	api_register_func('api/gamerzilla/trophy/set','api_trophy_set', true);
+	api_register_func('api/gamerzilla/trophy/set/stat','api_trophy_set_stat', true);
 }
 
 function gamerzilla_getsysconfig($param) {
@@ -225,4 +227,64 @@ function api_game_add($type) {
 		}
 	}
 	return api_apply_template('game', $type, array('$game' => $game));
+}
+
+function api_trophy_set($type) {
+	$r_trophy = q("select t.game_id, t.id from gamerzilla_game g, gamerzilla_trophy t where g.short_name = '%s' and g.id = t.game_id and t.trophy_name = '%s'",
+			dbesc($_POST["game"]),
+			dbesc($_POST["trophy"])
+		);
+	if ($r_trophy) {
+		$r_user = q("select id, achieved from gamerzilla_userstat g where g.game_id = %d and g.trophy_id = %d and g.uuid = %d",
+				$r_trophy[0]["game_id"],
+				$r_trophy[0]["id"],
+				local_channel()
+			);
+		if ($r_user) {
+			if ($r_user[0]["achieved"] != 0) {
+				$r = q("update gamerzilla_userstat set achieved = 1 where id = %d",
+						$r_user[0]["id"]
+					);
+			}
+		}
+		else {
+			$r = q("insert into gamerzilla_userstat(game_id, trophy_id, uuid, achieved) values (%d, %d, %d, 1)",
+					$r_trophy[0]["game_id"],
+					$r_trophy[0]["id"],
+					local_channel()
+				);
+		}
+	}
+	return api_apply_template('result', $type, array('$result' => true));
+}
+
+function api_trophy_set_stat($type) {
+	$r_trophy = q("select t.game_id, t.id from gamerzilla_game g, gamerzilla_trophy t where g.short_name = '%s' and g.id = t.game_id and t.trophy_name = '%s'",
+			dbesc($_POST["game"]),
+			dbesc($_POST["trophy"])
+		);
+	if ($r_trophy) {
+		$r_user = q("select id, progress from gamerzilla_userstat g where g.game_id = %d and g.trophy_id = %d and g.uuid = %d",
+				$r_trophy[0]["game_id"],
+				$r_trophy[0]["id"],
+				local_channel()
+			);
+		if ($r_user) {
+			if ($r_user[0]["progress"] < (int)$_POST["progress"]) {
+				$r = q("update gamerzilla_userstat set progress = %d where id = %d",
+						(int)$_POST["progress"],
+						$r_user[0]["id"]
+					);
+			}
+		}
+		else {
+			$r = q("insert into gamerzilla_userstat(game_id, trophy_id, uuid, progress) values (%d, %d, %d, %d)",
+					$r_trophy[0]["game_id"],
+					$r_trophy[0]["id"],
+					local_channel(),
+					(int)$_POST["progress"]
+				);
+		}
+	}
+	return api_apply_template('result', $type, array('$result' => true));
 }

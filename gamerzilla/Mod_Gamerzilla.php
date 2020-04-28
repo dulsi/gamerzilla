@@ -59,7 +59,7 @@ class Gamerzilla extends Controller {
 			]);
 			return $sc;
 		}
-		else
+		else if (argc() == 3)
 		{
 			$r = q("select trophy_name, trophy_desc, progress, max_progress, coalesce(achieved, 0) achieved from gamerzilla_game g, gamerzilla_trophy t left outer join gamerzilla_userstat u on t.game_id = u.game_id and t.id = u.trophy_id and u.uuid = %d where g.id = t.game_id and g.short_name = '%s' order by achieved desc, t.id",
 					local_channel(),
@@ -78,6 +78,25 @@ class Gamerzilla extends Controller {
 			]);
 
 			return $sc;
+		}
+		else
+		{
+			$r_game = q("select photoid from gamerzilla_game g where g.short_name = '%s'",
+					dbesc(argv(2))
+				);
+			if ($r_game) {
+				$r = q("select mimetype, content from photo where resource_id='%s'",
+					dbesc($r_game[0]["photoid"])
+				);
+				if ($r) {
+					header("Content-Type: " . $r[0]["mime_type"]);
+					$image = @imagecreatefromstring($r[0]["content"]);
+					imagepng($image, NULL, 9);
+					imagedestroy($image);
+					killme();
+				}
+			}
+			// return error
 		}
 	}
 

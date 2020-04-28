@@ -13,6 +13,8 @@ use Zotlabs\Lib\Apps;
 use Zotlabs\Extend\Hook;
 use Zotlabs\Extend\Route;
 
+require_once('include/photo/photo_driver.php');
+
 function gamerzilla_load(){
 	Hook::register('api_register','addon/gamerzilla/gamerzilla.php','gamerzilla_api_register');
 	Route::register('addon/gamerzilla/Mod_Gamerzilla.php','gamerzilla');
@@ -30,6 +32,7 @@ function gamerzilla_api_register($x) {
 	api_register_func('api/gamerzilla/games','api_games', true);
 	api_register_func('api/gamerzilla/game','api_game', true);
 	api_register_func('api/gamerzilla/game/add','api_game_add', true);
+	api_register_func('api/gamerzilla/game/image','api_game_image', true);
 	api_register_func('api/gamerzilla/trophy/set','api_trophy_set', true);
 	api_register_func('api/gamerzilla/trophy/set/stat','api_trophy_set_stat', true);
 }
@@ -55,6 +58,7 @@ function gamerzilla_dbsetup () {
 				id int(10) UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 				short_name varvhar(128),
 				game_name varchar(128),
+				photoid char(191),
 				vernum int
 				) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;
 			",
@@ -189,9 +193,11 @@ function api_game_add($type) {
 			);
 	}
 	else {
-		$r = q("insert into gamerzilla_game(short_name, game_name, vernum) values ('%s', '%s', %d)",
+		$photo_hash = photo_new_resource();
+		$r = q("insert into gamerzilla_game(short_name, game_name, photoid, vernum) values ('%s', '%s', '%s', %d)",
 				dbesc($game["shortname"]),
 				dbesc($game["name"]),
+				dbesc($photo_hash),
 				$game["version"]
 			);
 		$r_game = q("select id from gamerzilla_game g where g.short_name = '%s'",
@@ -227,6 +233,25 @@ function api_game_add($type) {
 		}
 	}
 	return api_apply_template('game', $type, array('$game' => $game));
+}
+
+function api_game_image($type) {
+	$r_game = q("select photoid from gamerzilla_game g where g.short_name = '%s'",
+			dbesc($_POST["game"])
+		);
+	if ($r_game) {
+		$photoid = $r_game[0]["photoid"];
+		$imagedata = @file_get_contents($_FILES['imagefile']['tmp_name']);
+		$ph = photo_factory($imagedata, $_FILES['imagefile']['type']);
+		$ph->doScaleImage(368, 172);
+		$ph->clearexif();
+		$p = array('resource_id' => $photoid,
+			'filename' => $_FILES['imagefile']['name'], 'imgscale' => 0, 'photo_usage' => PHOTO_NORMAL,
+			'width' => 368, 'height' => 172
+		);
+		$r0 = $ph->save($p);
+	}
+	return api_apply_template('game', $type, array('$game' => $_FILES['imagefile']['type']));
 }
 
 function api_trophy_set($type) {

@@ -14,7 +14,7 @@
 				</tr>
 				{{foreach $items as $item}}
 				<tr>
-					<td><a href="{{$item.url}}">{{$item.name}}</a></td>
+					<td><a href="{{$item.url}}"><img src="{{$item.url}}/show" alt="[{{$item.name}}]"> {{$item.name}}</a></td>
 					<td>{{$item.earned}}</td>
 					<td>{{$item.total}}</td>
 				</tr>

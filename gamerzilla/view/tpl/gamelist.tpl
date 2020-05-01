@@ -8,9 +8,9 @@
 	<div class="section-content-wrapper">
 			<table class="w-100">
 				<tr>
-					<th width=60%>Name</th>
-					<th width=20%>Earned</th>
-					<th width=20%>Total</th>
+					<th width=70%>Name</th>
+					<th width=15%>Earned</th>
+					<th width=15%>Total</th>
 				</tr>
 				{{foreach $items as $item}}
 				<tr>

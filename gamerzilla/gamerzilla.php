@@ -33,6 +33,7 @@ function gamerzilla_api_register($x) {
 	api_register_func('api/gamerzilla/game','api_game', true);
 	api_register_func('api/gamerzilla/game/add','api_game_add', true);
 	api_register_func('api/gamerzilla/game/image','api_game_image', true);
+	api_register_func('api/gamerzilla/game/image/show','api_game_image_show', true);
 	api_register_func('api/gamerzilla/trophy/set','api_trophy_set', true);
 	api_register_func('api/gamerzilla/trophy/set/stat','api_trophy_set_stat', true);
 }
@@ -68,7 +69,9 @@ function gamerzilla_dbsetup () {
 				game_id int(10),
 				trophy_name varchar(128),
 				trophy_desc varchar(255),
-				max_progress int(10)
+				max_progress int(10),
+				truephotoid char(191),
+				falsephotoid char(191)
 				) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;
 			",
 			"alter table gamerzilla_trophy add index (game_id)",
@@ -159,12 +162,12 @@ function api_games($type) {
 }
 
 function api_game($type) {
-	$r_game = q("select id, short_name, game_name, vernum from gamerzilla_game g where g.short_name = '%s'",
-			dbesc($_POST["game"])
+	$r_game = q("select id, short_name, game_name, photoid, vernum from gamerzilla_game g where g.short_name = '%s'",
+			dbesc($_REQUEST["game"])
 		);
 	$game = [];
 	if ($r_game) {
-		$game = ['id' => $r_game[0]["id"], 'shortname' => $r_game[0]["short_name"], 'name' => $r_game[0]["game_name"], 'version' => $r_game[0]["vernum"] ];
+		$game = ['id' => $r_game[0]["id"], 'shortname' => $r_game[0]["short_name"], 'name' => $r_game[0]["game_name"], 'image' => $r_game[0]["photoid"], 'version' => $r_game[0]["vernum"] ];
 	}
 	$r = q("select trophy_name, trophy_desc, progress, max_progress, coalesce(achieved, 0) achieved from gamerzilla_game g, gamerzilla_trophy t left outer join gamerzilla_userstat u on t.game_id = u.game_id and t.id = u.trophy_id and u.uuid = %d where g.id = t.game_id and g.id = %d order by achieved desc, t.id",
 			local_channel(),
@@ -254,10 +257,28 @@ function api_game_image($type) {
 	return api_apply_template('game', $type, array('$game' => $_FILES['imagefile']['type']));
 }
 
+function api_game_image_show($type) {
+	$r_game = q("select photoid from gamerzilla_game g where g.short_name = '%s'",
+			dbesc($_REQUEST["game"])
+		);
+	if ($r_game) {
+		$r = q("select mimetype, content from photo where resource_id='%s'",
+			dbesc($r_game[0]["photoid"])
+		);
+		if ($r) {
+			header("Content-Type: " . $r[0]["mime_type"]);
+			$image = @imagecreatefromstring($r[0]["content"]);
+			imagepng($image, NULL, 9);
+			imagedestroy($image);
+			killme();
+		}
+	}
+}
+
 function api_trophy_set($type) {
 	$r_trophy = q("select t.game_id, t.id from gamerzilla_game g, gamerzilla_trophy t where g.short_name = '%s' and g.id = t.game_id and t.trophy_name = '%s'",
-			dbesc($_POST["game"]),
-			dbesc($_POST["trophy"])
+			dbesc($_REQUEST["game"]),
+			dbesc($_REQUEST["trophy"])
 		);
 	if ($r_trophy) {
 		$r_user = q("select id, achieved from gamerzilla_userstat g where g.game_id = %d and g.trophy_id = %d and g.uuid = %d",
@@ -285,8 +306,8 @@ function api_trophy_set($type) {
 
 function api_trophy_set_stat($type) {
 	$r_trophy = q("select t.game_id, t.id from gamerzilla_game g, gamerzilla_trophy t where g.short_name = '%s' and g.id = t.game_id and t.trophy_name = '%s'",
-			dbesc($_POST["game"]),
-			dbesc($_POST["trophy"])
+			dbesc($_REQUEST["game"]),
+			dbesc($_REQUEST["trophy"])
 		);
 	if ($r_trophy) {
 		$r_user = q("select id, progress from gamerzilla_userstat g where g.game_id = %d and g.trophy_id = %d and g.uuid = %d",
@@ -295,9 +316,9 @@ function api_trophy_set_stat($type) {
 				local_channel()
 			);
 		if ($r_user) {
-			if ($r_user[0]["progress"] < (int)$_POST["progress"]) {
+			if ($r_user[0]["progress"] < (int)$_REQUEST["progress"]) {
 				$r = q("update gamerzilla_userstat set progress = %d where id = %d",
-						(int)$_POST["progress"],
+						(int)$_REQUEST["progress"],
 						$r_user[0]["id"]
 					);
 			}
@@ -307,7 +328,7 @@ function api_trophy_set_stat($type) {
 					$r_trophy[0]["game_id"],
 					$r_trophy[0]["id"],
 					local_channel(),
-					(int)$_POST["progress"]
+					(int)$_REQUEST["progress"]
 				);
 		}
 	}

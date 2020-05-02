@@ -8,16 +8,17 @@
 	<div class="section-content-wrapper">
 			<table class="w-100">
 				<tr>
+					<th width=20%>Status</th>
 					<th width=60%>Name</th>
-					<th width=20%>Achieved</th>
 					<th width=20%>Progress</th>
 				</tr>
 				{{foreach $items as $item}}
 				<tr>
+					<td><img src="{{$base_url}}/{{$item.trophy_name}}/{{$item.achieved}}/show" /></td>
 					<td>{{$item.trophy_name}}</a></td>
-					<td>{{$item.achieved}}</td>
-					<td>{{$item.progress}} / {{$item.max_progress}}</td>
+					<td>{{if $item.max_progress}}{{if $item.achieved}}{{$item.max_progress}}{{else}}{{$item.progress}}{{/if}} / {{$item.max_progress}}{{/if}}</td>
 				</tr>
+    <tr><td colspan="3">{{$item.trophy_desc}}</td></tr>
 				{{/foreach}}
 			</table>
 	</div>

@@ -36,6 +36,8 @@ function gamerzilla_api_register($x) {
 	api_register_func('api/gamerzilla/game/image/show','api_game_image_show', true);
 	api_register_func('api/gamerzilla/trophy/set','api_trophy_set', true);
 	api_register_func('api/gamerzilla/trophy/set/stat','api_trophy_set_stat', true);
+	api_register_func('api/gamerzilla/trophy/image','api_trophy_image', true);
+	api_register_func('api/gamerzilla/trophy/image/show','api_trophy_image_show', true);
 }
 
 function gamerzilla_getsysconfig($param) {
@@ -227,11 +229,15 @@ function api_game_add($type) {
 			}
 		}
 		if (!$found) {
-			$r = q("insert into gamerzilla_trophy(game_id, trophy_name, trophy_desc, max_progress) values (%d, '%s', '%s', %d)",
+			$true_photo_hash = photo_new_resource();
+			$false_photo_hash = photo_new_resource();
+			$r = q("insert into gamerzilla_trophy(game_id, trophy_name, trophy_desc, max_progress, truephotoid, falsephotoid) values (%d, '%s', '%s', %d, '%s', '%s')",
 					$r_game[0]["id"],
 					dbesc($trophy[$x]["trophy_name"]),
 					dbesc($trophy[$x]["trophy_desc"]),
-					$trophy[$x]["max_progress"]
+					$trophy[$x]["max_progress"],
+					$true_photo_hash,
+					$false_photo_hash
 				);
 		}
 	}
@@ -254,7 +260,7 @@ function api_game_image($type) {
 		);
 		$r0 = $ph->save($p);
 	}
-	return api_apply_template('game', $type, array('$game' => $_FILES['imagefile']['type']));
+	return api_apply_template('game', $type, array('$game' => $_POST["game"]));
 }
 
 function api_game_image_show($type) {
@@ -333,4 +339,58 @@ function api_trophy_set_stat($type) {
 		}
 	}
 	return api_apply_template('result', $type, array('$result' => true));
+}
+
+function api_trophy_image($type) {
+	$r_game = q("select truephotoid, falsephotoid from gamerzilla_game g, gamerzilla_trophy t where g.short_name = '%s' and g.id = t.game_id and t.trophy_name = '%s'",
+			dbesc($_POST["game"]),
+			dbesc($_POST["trophy"])
+		);
+	if ($r_game) {
+		$photoid = $r_game[0]["truephotoid"];
+		$imagedata = @file_get_contents($_FILES['trueimagefile']['tmp_name']);
+		$ph = photo_factory($imagedata, $_FILES['trueimagefile']['type']);
+		$ph->doScaleImage(64, 64);
+		$ph->clearexif();
+		$p = array('resource_id' => $photoid,
+			'filename' => $_FILES['trueimagefile']['name'], 'imgscale' => 0, 'photo_usage' => PHOTO_NORMAL,
+			'width' => 64, 'height' => 64
+		);
+		$r0 = $ph->save($p);
+		$photoid = $r_game[0]["falsephotoid"];
+		$imagedata = @file_get_contents($_FILES['falseimagefile']['tmp_name']);
+		$ph = photo_factory($imagedata, $_FILES['falseimagefile']['type']);
+		$ph->doScaleImage(64, 64);
+		$ph->clearexif();
+		$p = array('resource_id' => $photoid,
+			'filename' => $_FILES['falseimagefile']['name'], 'imgscale' => 0, 'photo_usage' => PHOTO_NORMAL,
+			'width' => 64, 'height' => 64
+		);
+		$r0 = $ph->save($p);
+	}
+	return api_apply_template('game', $type, array('$game' => $POST["game"]));
+}
+
+function api_trophy_image_show($type) {
+	$r_game = q("select truephotoid, falsephotoid from gamerzilla_game g, gamerzilla_trophy t where g.short_name = '%s' where g.short_name = '%s' and g.id = t.game_id and t.trophy_name = '%s'",
+			dbesc($_REQUEST["game"]),
+			dbesc($_REQUEST["trophy"])
+		);
+	if ($r_game) {
+		if ($_REQUEST["achieved"] == '1')
+				$r = q("select mimetype, content from photo where resource_id='%s'",
+					dbesc($r_game[0]["truephotoid"])
+				);
+		else
+				$r = q("select mimetype, content from photo where resource_id='%s'",
+					dbesc($r_game[0]["falsephotoid"])
+				);
+		if ($r) {
+			header("Content-Type: " . $r[0]["mime_type"]);
+			$image = @imagecreatefromstring($r[0]["content"]);
+			imagepng($image, NULL, 9);
+			imagedestroy($image);
+			killme();
+		}
+	}
 }

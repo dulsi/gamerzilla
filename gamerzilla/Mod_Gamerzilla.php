@@ -68,18 +68,18 @@ class Gamerzilla extends Controller {
 			$items = [];
 			if ($r) {
 				for($x = 0; $x < count($r); $x ++) {
-					$items[$x] = ['trophy_name' => $r[$x]["trophy_name"], 'achieved' => $r[$x]["achieved"], 'progress' => $r[$x]["progress"], 'max_progress' => $r[$x]["max_progress"] ];
+					$items[$x] = ['trophy_name' => $r[$x]["trophy_name"], 'trophy_desc' => $r[$x]["trophy_desc"], 'achieved' => $r[$x]["achieved"], 'progress' => $r[$x]["progress"], 'max_progress' => $r[$x]["max_progress"] ];
 				}
 			}
 
 
 			$sc = replace_macros(get_markup_template('gametrophy.tpl', 'addon/gamerzilla/'), [
-				'$items' => $items
+				'$items' => $items, 'base_url' => "/gamerzilla/" . argv(1) . "/" . argv(2)
 			]);
 
 			return $sc;
 		}
-		else
+		else if (argc() == 4)
 		{
 			$r_game = q("select photoid from gamerzilla_game g where g.short_name = '%s'",
 					dbesc(argv(2))
@@ -88,6 +88,31 @@ class Gamerzilla extends Controller {
 				$r = q("select mimetype, content from photo where resource_id='%s'",
 					dbesc($r_game[0]["photoid"])
 				);
+				if ($r) {
+					header("Content-Type: " . $r[0]["mime_type"]);
+					$image = @imagecreatefromstring($r[0]["content"]);
+					imagepng($image, NULL, 9);
+					imagedestroy($image);
+					killme();
+				}
+			}
+			// return error
+		}
+		else
+		{
+			$r_game = q("select truephotoid, falsephotoid from gamerzilla_game g, gamerzilla_trophy t where g.short_name = '%s' and g.id = t.game_id and t.trophy_name = '%s'",
+					dbesc(argv(2)),
+					dbesc(argv(3))
+				);
+			if ($r_game) {
+				if (argv(4) == "1")
+					$r = q("select mimetype, content from photo where resource_id='%s'",
+						dbesc($r_game[0]["truephotoid"])
+					);
+				else
+					$r = q("select mimetype, content from photo where resource_id='%s'",
+						dbesc($r_game[0]["falsephotoid"])
+					);
 				if ($r) {
 					header("Content-Type: " . $r[0]["mime_type"]);
 					$image = @imagecreatefromstring($r[0]["content"]);

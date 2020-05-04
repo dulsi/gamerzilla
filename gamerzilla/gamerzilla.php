@@ -293,7 +293,7 @@ function api_trophy_set($type) {
 				local_channel()
 			);
 		if ($r_user) {
-			if ($r_user[0]["achieved"] != 0) {
+			if ($r_user[0]["achieved"] != 1) {
 				$r = q("update gamerzilla_userstat set achieved = 1 where id = %d",
 						$r_user[0]["id"]
 					);

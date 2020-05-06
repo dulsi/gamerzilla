@@ -1,9 +1,9 @@
 <div class="generic-content-wrapper">
 	<div class="section-title-wrapper">
-		<h2>GAMES</h2>
+		<h2><img src="{{$base_url}}/show" /> {{$name}}</h2>
 	</div>
 	<div class="section-subtitle-wrapper">
-		<h3>{{if $title}}{{$title}}{{else}}Order{{/if}}</h3>
+		<h3>{{if $title}}{{$title}}{{else}}Achievements{{/if}}</h3>
 	</div>
 	<div class="section-content-wrapper">
 			<table class="w-100">

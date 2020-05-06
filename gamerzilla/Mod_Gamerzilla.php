@@ -61,6 +61,9 @@ class Gamerzilla extends Controller {
 		}
 		else if (argc() == 3)
 		{
+			$g = q("select short_name, game_name from gamerzilla_game g where g.short_name = '%s'",
+					dbesc(argv(2))
+				);
 			$r = q("select trophy_name, trophy_desc, progress, max_progress, coalesce(achieved, 0) achieved from gamerzilla_game g, gamerzilla_trophy t left outer join gamerzilla_userstat u on t.game_id = u.game_id and t.id = u.trophy_id and u.uuid = %d where g.id = t.game_id and g.short_name = '%s' order by achieved desc, t.id",
 					local_channel(),
 					dbesc(argv(2))
@@ -74,7 +77,7 @@ class Gamerzilla extends Controller {
 
 
 			$sc = replace_macros(get_markup_template('gametrophy.tpl', 'addon/gamerzilla/'), [
-				'$items' => $items, 'base_url' => "/gamerzilla/" . argv(1) . "/" . argv(2)
+				'$items' => $items, '$base_url' => "/gamerzilla/" . argv(1) . "/" . argv(2), '$name' => $g[0]['game_name']
 			]);
 
 			return $sc;

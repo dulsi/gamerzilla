@@ -89,7 +89,19 @@ function gamerzilla_dbsetup () {
 			",
 			"alter table gamerzilla_userstat add index (uuid)",
 			"alter table gamerzilla_userstat add index (game_id)",
-			"alter table gamerzilla_userstat add index (trophy_id)"
+			"alter table gamerzilla_userstat add index (trophy_id)",
+			"CREATE TABLE gamerzilla_image (
+				id int(10) UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+				resource_id char(191),
+				filename char(191),
+				mimetype char(191),
+				height smallint(6),
+				width smallint(6),
+				filesize int(10),
+				content mediumblob
+				) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;
+			",
+			"alter table gamerzilla_image add index (resource_id)"
 		)
 	);
 
@@ -181,6 +193,7 @@ function api_game($type) {
 			$items[$x] = ['trophy_name' => $r[$x]["trophy_name"], 'trophy_desc' => $r[$x]["trophy_desc"], 'achieved' => $r[$x]["achieved"], 'progress' => $r[$x]["progress"], 'max_progress' => $r[$x]["max_progress"] ];
 		}
 	}
+	$game["game"] = $_REQUEST["game"];
 	$game["trophy"] = $items;
 	return api_apply_template('game', $type, array('$game' => $game));
 }
@@ -254,11 +267,37 @@ function api_game_image($type) {
 		$ph = photo_factory($imagedata, $_FILES['imagefile']['type']);
 		$ph->doScaleImage(368, 172);
 		$ph->clearexif();
-		$p = array('resource_id' => $photoid,
+		$arr = array('resource_id' => $photoid,
 			'filename' => $_FILES['imagefile']['name'], 'imgscale' => 0, 'photo_usage' => PHOTO_NORMAL,
 			'width' => 368, 'height' => 172
 		);
-		$r0 = $ph->save($p);
+		$p = [];
+
+		$p['resource_id'] = (($arr['resource_id']) ? $arr['resource_id'] : '');
+		$p['filename'] = (($arr['filename']) ? $arr['filename'] : '');
+		$p['mimetype'] = (($arr['mimetype']) ? $arr['mimetype'] : $ph->getType());
+		$p['width'] = (($arr['width']) ? $arr['width'] : $ph->getWidth());
+		$p['height'] = (($arr['height']) ? $arr['height'] : $ph->getHeight());
+
+		$x = q("select id from gamerzilla_image where resource_id = '%s' limit 1", dbesc($p['resource_id']));
+
+		if($x) {
+			$r0 = q("UPDATE gamerzilla_image set
+				resource_id = '%s',
+				filename = '%s',
+				mimetype = '%s',
+				height = %d,
+				width = %d,
+				content = '%s',
+				filesize = %d
+				where id = %d",
+			dbesc($p['resource_id']), dbesc(basename($p['filename'])), dbesc($p['mimetype']), intval($p['height']), intval($p['width']), dbescbin($ph->imageString()), strlen($ph->imageString()));
+		} else {
+			$p['created'] = (($arr['created']) ? $arr['created'] : $p['edited']);
+			$r0 = q("INSERT INTO gamerzilla_image
+				( resource_id, filename, mimetype, height, width, content, filesize )
+				VALUES ( '%s', '%s', '%s', %d, %d, '%s', %d)", dbesc($p['resource_id']), dbesc(basename($p['filename'])), dbesc($p['mimetype']), intval($p['height']), intval($p['width']), dbescbin($ph->imageString()), strlen($ph->imageString()));
+		}
 	}
 	return api_apply_template('game', $type, array('$game' => $_POST["game"]));
 }
@@ -268,7 +307,7 @@ function api_game_image_show($type) {
 			dbesc($_REQUEST["game"])
 		);
 	if ($r_game) {
-		$r = q("select mimetype, content from photo where resource_id='%s'",
+		$r = q("select mimetype, content from gamerzilla_image where resource_id='%s'",
 			dbesc($r_game[0]["photoid"])
 		);
 		if ($r) {
@@ -352,37 +391,89 @@ function api_trophy_image($type) {
 		$ph = photo_factory($imagedata, $_FILES['trueimagefile']['type']);
 		$ph->doScaleImage(64, 64);
 		$ph->clearexif();
-		$p = array('resource_id' => $photoid,
+		$arr = array('resource_id' => $photoid,
 			'filename' => $_FILES['trueimagefile']['name'], 'imgscale' => 0, 'photo_usage' => PHOTO_NORMAL,
 			'width' => 64, 'height' => 64
 		);
-		$r0 = $ph->save($p);
+		$p = [];
+
+		$p['resource_id'] = (($arr['resource_id']) ? $arr['resource_id'] : '');
+		$p['filename'] = (($arr['filename']) ? $arr['filename'] : '');
+		$p['mimetype'] = (($arr['mimetype']) ? $arr['mimetype'] : $ph->getType());
+		$p['width'] = (($arr['width']) ? $arr['width'] : $ph->getWidth());
+		$p['height'] = (($arr['height']) ? $arr['height'] : $ph->getHeight());
+
+		$x = q("select id from gamerzilla_image where resource_id = '%s' limit 1", dbesc($p['resource_id']));
+
+		if($x) {
+			$r0 = q("UPDATE gamerzilla_image set
+				resource_id = '%s',
+				filename = '%s',
+				mimetype = '%s',
+				height = %d,
+				width = %d,
+				content = '%s',
+				filesize = %d
+				where id = %d",
+			dbesc($p['resource_id']), dbesc(basename($p['filename'])), dbesc($p['mimetype']), intval($p['height']), intval($p['width']), dbescbin($ph->imageString()), strlen($ph->imageString()));
+		} else {
+			$p['created'] = (($arr['created']) ? $arr['created'] : $p['edited']);
+			$r0 = q("INSERT INTO gamerzilla_image
+				( resource_id, filename, mimetype, height, width, content, filesize )
+				VALUES ( '%s', '%s', '%s', %d, %d, '%s', %d)", dbesc($p['resource_id']), dbesc(basename($p['filename'])), dbesc($p['mimetype']), intval($p['height']), intval($p['width']), dbescbin($ph->imageString()), strlen($ph->imageString()));
+		}
 		$photoid = $r_game[0]["falsephotoid"];
 		$imagedata = @file_get_contents($_FILES['falseimagefile']['tmp_name']);
 		$ph = photo_factory($imagedata, $_FILES['falseimagefile']['type']);
 		$ph->doScaleImage(64, 64);
 		$ph->clearexif();
-		$p = array('resource_id' => $photoid,
+		$arr = array('resource_id' => $photoid,
 			'filename' => $_FILES['falseimagefile']['name'], 'imgscale' => 0, 'photo_usage' => PHOTO_NORMAL,
 			'width' => 64, 'height' => 64
 		);
-		$r0 = $ph->save($p);
+		$p = [];
+
+		$p['resource_id'] = (($arr['resource_id']) ? $arr['resource_id'] : '');
+		$p['filename'] = (($arr['filename']) ? $arr['filename'] : '');
+		$p['mimetype'] = (($arr['mimetype']) ? $arr['mimetype'] : $ph->getType());
+		$p['width'] = (($arr['width']) ? $arr['width'] : $ph->getWidth());
+		$p['height'] = (($arr['height']) ? $arr['height'] : $ph->getHeight());
+
+		$x = q("select id from gamerzilla_image where resource_id = '%s' limit 1", dbesc($p['resource_id']));
+
+		if($x) {
+			$r0 = q("UPDATE gamerzilla_image set
+				resource_id = '%s',
+				filename = '%s',
+				mimetype = '%s',
+				height = %d,
+				width = %d,
+				content = '%s',
+				filesize = %d
+				where id = %d",
+			dbesc($p['resource_id']), dbesc(basename($p['filename'])), dbesc($p['mimetype']), intval($p['height']), intval($p['width']), dbescbin($ph->imageString()), strlen($ph->imageString()));
+		} else {
+			$p['created'] = (($arr['created']) ? $arr['created'] : $p['edited']);
+			$r0 = q("INSERT INTO gamerzilla_image
+				( resource_id, filename, mimetype, height, width, content, filesize )
+				VALUES ( '%s', '%s', '%s', %d, %d, '%s', %d)", dbesc($p['resource_id']), dbesc(basename($p['filename'])), dbesc($p['mimetype']), intval($p['height']), intval($p['width']), dbescbin($ph->imageString()), strlen($ph->imageString()));
+		}
 	}
 	return api_apply_template('game', $type, array('$game' => $POST["game"]));
 }
 
 function api_trophy_image_show($type) {
-	$r_game = q("select truephotoid, falsephotoid from gamerzilla_game g, gamerzilla_trophy t where g.short_name = '%s' where g.short_name = '%s' and g.id = t.game_id and t.trophy_name = '%s'",
+	$r_game = q("select truephotoid, falsephotoid from gamerzilla_game g, gamerzilla_trophy t where g.short_name = '%s' and g.id = t.game_id and t.trophy_name = '%s'",
 			dbesc($_REQUEST["game"]),
 			dbesc($_REQUEST["trophy"])
 		);
 	if ($r_game) {
 		if ($_REQUEST["achieved"] == '1')
-				$r = q("select mimetype, content from photo where resource_id='%s'",
+				$r = q("select mimetype, content from gamerzilla_image where resource_id='%s'",
 					dbesc($r_game[0]["truephotoid"])
 				);
 		else
-				$r = q("select mimetype, content from photo where resource_id='%s'",
+				$r = q("select mimetype, content from gamerzilla_image where resource_id='%s'",
 					dbesc($r_game[0]["falsephotoid"])
 				);
 		if ($r) {

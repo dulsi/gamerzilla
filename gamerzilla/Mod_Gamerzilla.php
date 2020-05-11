@@ -88,7 +88,7 @@ class Gamerzilla extends Controller {
 					dbesc(argv(2))
 				);
 			if ($r_game) {
-				$r = q("select mimetype, content from photo where resource_id='%s'",
+				$r = q("select mimetype, content from gamerzilla_image where resource_id='%s'",
 					dbesc($r_game[0]["photoid"])
 				);
 				if ($r) {
@@ -109,11 +109,11 @@ class Gamerzilla extends Controller {
 				);
 			if ($r_game) {
 				if (argv(4) == "1")
-					$r = q("select mimetype, content from photo where resource_id='%s'",
+					$r = q("select mimetype, content from gamerzilla_image where resource_id='%s'",
 						dbesc($r_game[0]["truephotoid"])
 					);
 				else
-					$r = q("select mimetype, content from photo where resource_id='%s'",
+					$r = q("select mimetype, content from gamerzilla_image where resource_id='%s'",
 						dbesc($r_game[0]["falsephotoid"])
 					);
 				if ($r) {

@@ -40,23 +40,33 @@ class Gamerzilla extends Controller {
 			$o .= t('A gamerzilla for addons, you can copy/paste');
 			return $o;
 		}
-		if (argc() == 2)
+		if ((argc() == 2) || ((argc() == 3) && (is_numeric(argv(2)))))
 		{
-			$r = q("select short_name, game_name, (select count(*) from gamerzilla_userstat u2 where u2.achieved = 1 and g.id = u2.game_id and u2.uuid = %d) as earned, (select count(*) from gamerzilla_trophy t where g.id = t.game_id) as total_trophy from gamerzilla_game g where g.id in (select game_id from gamerzilla_userstat u where u.uuid = %d)",
+			$page = 0;
+			if ((argc() == 3) && (is_numeric(argv(2))))
+				$page = intval(argv(2));
+			$r = q("select short_name, game_name, (select count(*) from gamerzilla_userstat u2 where u2.achieved = 1 and g.id = u2.game_id and u2.uuid = %d) as earned, (select count(*) from gamerzilla_trophy t where g.id = t.game_id) as total_trophy from gamerzilla_game g where g.id in (select game_id from gamerzilla_userstat u where u.uuid = %d) limit %d offset %d",
 					local_channel(),
-					local_channel()
+					local_channel(),
+					26,
+					$page * 25
 				);
+			$tmpl = [];
 			$items = [];
 			if ($r) {
 				for($x = 0; $x < count($r); $x ++) {
-					$items[$x] = ['url' => "/gamerzilla/" . argv(1) . "/" . $r[$x]["short_name"], 'name' => $r[$x]["game_name"], 'earned' => $r[$x]["earned"], 'total' => $r[$x]["total_trophy"] ];
+					if ($x == 25)
+						$tmpl['$page_next'] = $page + 1;
+					else
+						$items[$x] = ['url' => "/gamerzilla/" . argv(1) . "/" . $r[$x]["short_name"], 'name' => $r[$x]["game_name"], 'earned' => $r[$x]["earned"], 'total' => $r[$x]["total_trophy"] ];
 				}
 			}
 
-
-			$sc = replace_macros(get_markup_template('gamelist.tpl', 'addon/gamerzilla/'), [
-				'$items' => $items
-			]);
+			if ($page > 0)
+				$tmpl['$page_prev'] = $page - 1;
+			$tmpl['$items'] = $items;
+			$tmpl['$channel'] = argv(1);
+			$sc = replace_macros(get_markup_template('gamelist.tpl', 'addon/gamerzilla/'), $tmpl);
 			return $sc;
 		}
 		else if (argc() == 3)

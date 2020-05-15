@@ -183,7 +183,7 @@ function api_game($type) {
 	if ($r_game) {
 		$game = ['id' => $r_game[0]["id"], 'shortname' => $r_game[0]["short_name"], 'name' => $r_game[0]["game_name"], 'image' => $r_game[0]["photoid"], 'version' => $r_game[0]["vernum"] ];
 	}
-	$r = q("select trophy_name, trophy_desc, progress, max_progress, coalesce(achieved, 0) achieved from gamerzilla_game g, gamerzilla_trophy t left outer join gamerzilla_userstat u on t.game_id = u.game_id and t.id = u.trophy_id and u.uuid = %d where g.id = t.game_id and g.id = %d order by achieved desc, t.id",
+	$r = q("select trophy_name, trophy_desc, progress, max_progress, coalesce(achieved, 0) achieved from gamerzilla_game g, gamerzilla_trophy t left outer join gamerzilla_userstat u on t.game_id = u.game_id and t.id = u.trophy_id and u.uuid = %d where g.id = t.game_id and g.id = %d order by t.id",
 			local_channel(),
 			$r_game[0]["id"]
 		);

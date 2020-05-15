@@ -45,7 +45,8 @@ class Gamerzilla extends Controller {
 			$page = 0;
 			if ((argc() == 3) && (is_numeric(argv(2))))
 				$page = intval(argv(2));
-			$r = q("select short_name, game_name, (select count(*) from gamerzilla_userstat u2 where u2.achieved = 1 and g.id = u2.game_id and u2.uuid = %d) as earned, (select count(*) from gamerzilla_trophy t where g.id = t.game_id) as total_trophy from gamerzilla_game g where g.id in (select game_id from gamerzilla_userstat u where u.uuid = %d) limit %d offset %d",
+			$r = q("select short_name, game_name, (select count(*) from gamerzilla_userstat u2 where u2.achieved = 1 and g.id = u2.game_id and u2.uuid = %d) as earned, (select count(*) from gamerzilla_trophy t where g.id = t.game_id) as total_trophy, (select max(u2.id) from gamerzilla_userstat u2 where u2.achieved = 1 and g.id = u2.game_id and u2.uuid = %d) as ustat_id from gamerzilla_game g where g.id in (select game_id from gamerzilla_userstat u where u.uuid = %d) order by ustat_id desc limit %d offset %d",
+					local_channel(),
 					local_channel(),
 					local_channel(),
 					26,

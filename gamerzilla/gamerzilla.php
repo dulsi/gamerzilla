@@ -16,15 +16,31 @@ use Zotlabs\Extend\Route;
 require_once('include/photo/photo_driver.php');
 
 function gamerzilla_load(){
+	Hook::register('channel_apps', 'addon/gamerzilla/gamerzilla.php', 'gamerzilla_channel_apps');
 	Hook::register('api_register','addon/gamerzilla/gamerzilla.php','gamerzilla_api_register');
 	Route::register('addon/gamerzilla/Mod_Gamerzilla.php','gamerzilla');
 	gamerzilla_dbsetup();
 }
 
-
 function gamerzilla_unload(){
 	Hook::unregister_by_file('addon/gamerzilla/gamerzilla.php');
 	Route::unregister('addon/gamerzilla/Mod_Gamerzilla.php','gamerzilla');
+}
+
+function gamerzilla_channel_apps(&$b) {
+	$uid = ((App::$profile_uid) ? App::$profile_uid : intval(local_channel()));
+
+	if(! Apps::addon_app_installed($uid, 'gallery'))
+		return;
+
+	$b['tabs'][] = [
+		'label' => t('Games'),
+		'url'   => z_root() . '/gamerzilla/' . $b['nickname'],
+		'sel'   => ((argv(0) == 'gamerzilla') ? 'active' : ''),
+		'title' => t('Games'),
+		'id'    => 'games-tab',
+		'icon'  => 'cog'
+	];
 }
 
 function gamerzilla_api_register($x) {

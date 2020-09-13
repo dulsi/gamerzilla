@@ -13,6 +13,29 @@ class Gamerzilla extends Controller {
 		if(argc() === 1 && $channel['channel_address']) {
 			goaway(z_root() . '/gamerzilla/' . $channel['channel_address'] );
 		}
+
+		if(observer_prohibited()) {
+			return;
+		}
+	
+		if(argc() > 1) {
+			$nick = argv(1);
+	
+			profile_load($nick);
+
+			$channelx = channelx_by_nick($nick);
+	
+			if(! $channelx)
+				return;
+	
+			App::$data['channel'] = $channelx;
+	
+			$observer = App::get_observer();
+			App::$data['observer'] = $observer;
+
+			App::$page['htmlhead'] .= "<script> var profile_uid = " . ((App::$data['channel']) ? App::$data['channel']['channel_id'] : 0) . "; </script>" ;
+	
+		}
 	}
 
 	function post() {
@@ -29,10 +52,7 @@ class Gamerzilla extends Controller {
 	}
 
 	function get() {
-		if(! local_channel())
-			return;
-
-		if(! Apps::addon_app_installed(local_channel(), 'gamerzilla')) {
+		if(! Apps::addon_app_installed(App::$data['channel']['channel_id'], 'gamerzilla')) {
 			//Do not display any associated widgets at this point
 			App::$pdl = '';
 
@@ -46,9 +66,9 @@ class Gamerzilla extends Controller {
 			if ((argc() == 3) && (is_numeric(argv(2))))
 				$page = intval(argv(2));
 			$r = q("select short_name, game_name, (select count(*) from gamerzilla_userstat u2 where u2.achieved = 1 and g.id = u2.game_id and u2.uuid = %d) as earned, (select count(*) from gamerzilla_trophy t where g.id = t.game_id) as total_trophy, (select max(u2.id) from gamerzilla_userstat u2 where u2.achieved = 1 and g.id = u2.game_id and u2.uuid = %d) as ustat_id from gamerzilla_game g where g.id in (select game_id from gamerzilla_userstat u where u.uuid = %d) order by ustat_id desc limit %d offset %d",
-					local_channel(),
-					local_channel(),
-					local_channel(),
+					App::$data['channel']['channel_id'],
+					App::$data['channel']['channel_id'],
+					App::$data['channel']['channel_id'],
 					26,
 					$page * 25
 				);
@@ -76,7 +96,7 @@ class Gamerzilla extends Controller {
 					dbesc(argv(2))
 				);
 			$r = q("select trophy_name, trophy_desc, progress, max_progress, coalesce(achieved, 0) achieved from gamerzilla_game g, gamerzilla_trophy t left outer join gamerzilla_userstat u on t.game_id = u.game_id and t.id = u.trophy_id and u.uuid = %d where g.id = t.game_id and g.short_name = '%s' order by achieved desc, t.id",
-					local_channel(),
+					App::$data['channel']['channel_id'],
 					dbesc(argv(2))
 				);
 			$items = [];

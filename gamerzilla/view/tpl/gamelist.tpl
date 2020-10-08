@@ -21,8 +21,9 @@
 				{{/foreach}}
 			</table>
 	</div>
-	<div class="section-content-wrapper">
-		{{if $page_prev == "0"}}<a href="/gamerzilla/{{$channel}}">&lt;&lt;&lt;</a>{{/if}}{{if $page_prev}}<a href="/gamerzilla/{{$channel}}/{{$page_prev}}">&lt;&lt;&lt;</a>{{/if}}
-		{{if $page_next}}<a href="/gamerzilla/{{$channel}}/{{$page_next}}">&gt;&gt;&gt;</a>{{/if}}
+	<div class="section-content-wrapper">&nbsp;
+		{{if $page_prev == "0"}}<span style="float: left"><a href="/gamerzilla/{{$channel}}">&lt;&lt;&lt;</a></span>{{/if}}{{if $page_prev}}<span style="float: left"><a href="/gamerzilla/{{$channel}}/{{$page_prev}}">&lt;&lt;&lt;</a></span>{{/if}}
+		{{if $page_next}}<span style="float: right"><a href="/gamerzilla/{{$channel}}/{{$page_next}}">&gt;&gt;&gt;</a></span>{{/if}}
 	</div>
+	{{if $privacy}}<div class="section-content-wrapper" style="text-align: center"><a href="/gamerzilla/{{$channel}}/.privacy">Privacy</a></div>{{/if}}
 </div>

@@ -45,9 +45,9 @@ class Gamerzilla extends Controller {
 		if(! Apps::addon_app_installed(local_channel(),'gamerzilla'))
 			return;
 
-		check_form_security_token_redirectOnErr('gamerzilla', 'gamerzilla');
+//		check_form_security_token_redirectOnErr('gamerzilla', 'gamerzilla');
 
-		set_pconfig(local_channel(), 'gamerzilla', 'some_setting', $_POST['some_setting']);
+		set_pconfig(local_channel(), 'gamerzilla', 'block_default', $_POST['block_default']);
 
 	}
 
@@ -62,6 +62,14 @@ class Gamerzilla extends Controller {
 		}
 		if ((argc() == 2) || ((argc() == 3) && (is_numeric(argv(2)))))
 		{
+			if ((local_channel() != App::$data['channel']['channel_id']) && (get_pconfig(App::$data['channel']['channel_id'], 'gamerzilla', 'block_default'))) {
+				//Do not display any associated widgets at this point
+				App::$pdl = '';
+
+				$o = '<b>' . t('Gamerzilla App') . ' (' . t('Not Authorized') . '):</b><br>';
+				$o .= t('You are authorized to access this page.');
+				return $o;
+			}
 			$page = 0;
 			if ((argc() == 3) && (is_numeric(argv(2))))
 				$page = intval(argv(2));
@@ -87,11 +95,37 @@ class Gamerzilla extends Controller {
 				$tmpl['$page_prev'] = $page - 1;
 			$tmpl['$items'] = $items;
 			$tmpl['$channel'] = argv(1);
+//			$tmpl['$token'] = get_form_security_token('gamerzilla');
+			$tmpl['$privacy'] = (local_channel() == App::$data['channel']['channel_id']) ? 1 : 0;
 			$sc = replace_macros(get_markup_template('gamelist.tpl', 'addon/gamerzilla/'), $tmpl);
+			return $sc;
+		}
+		if ((argc() == 3) && (argv(2) == ".privacy"))
+		{
+			if(local_channel() != App::$data['channel']['channel_id']) {
+				//Do not display any associated widgets at this point
+				App::$pdl = '';
+
+				$o = '<b>' . t('Gamerzilla App') . ' (' . t('Not Authorized') . '):</b><br>';
+				$o .= t('You are authorized to access this page.');
+				return $o;
+			}
+			$tmpl = [];
+			$tmpl['$channel'] = argv(1);
+			$tmpl['$block_default'] = get_pconfig(local_channel(), 'gamerzilla', 'block_default');
+			$sc = replace_macros(get_markup_template('gameprivacy.tpl', 'addon/gamerzilla/'), $tmpl);
 			return $sc;
 		}
 		else if (argc() == 3)
 		{
+			if ((local_channel() != App::$data['channel']['channel_id']) && (get_pconfig(App::$data['channel']['channel_id'], 'gamerzilla', 'block_default'))) {
+				//Do not display any associated widgets at this point
+				App::$pdl = '';
+
+				$o = '<b>' . t('Gamerzilla App') . ' (' . t('Not Authorized') . '):</b><br>';
+				$o .= t('You are authorized to access this page.');
+				return $o;
+			}
 			$g = q("select short_name, game_name from gamerzilla_game g where g.short_name = '%s'",
 					dbesc(argv(2))
 				);

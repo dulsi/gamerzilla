@@ -75,7 +75,7 @@ function gamerzilla_dbsetup () {
 		1 => Array (
 			"CREATE TABLE gamerzilla_game (
 				id int(10) UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
-				short_name varvhar(128),
+				short_name varchar(128),
 				game_name varchar(128),
 				photoid char(191),
 				vernum int

@@ -30,7 +30,7 @@ function gamerzilla_unload(){
 function gamerzilla_channel_apps(&$b) {
 	$uid = ((App::$profile_uid) ? App::$profile_uid : intval(local_channel()));
 
-	if(! Apps::addon_app_installed($uid, 'gallery'))
+	if(! Apps::addon_app_installed($uid, 'gamerzilla'))
 		return;
 
 	$b['tabs'][] = [

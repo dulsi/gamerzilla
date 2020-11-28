@@ -307,7 +307,7 @@ function api_game_image($type) {
 				content = '%s',
 				filesize = %d
 				where id = %d",
-			dbesc($p['resource_id']), dbesc(basename($p['filename'])), dbesc($p['mimetype']), intval($p['height']), intval($p['width']), dbescbin($ph->imageString()), strlen($ph->imageString()));
+			dbesc($p['resource_id']), dbesc(basename($p['filename'])), dbesc($p['mimetype']), intval($p['height']), intval($p['width']), dbescbin($ph->imageString()), strlen($ph->imageString()), $x[0]["id"]);
 		} else {
 			$p['created'] = (($arr['created']) ? $arr['created'] : $p['edited']);
 			$r0 = q("INSERT INTO gamerzilla_image
@@ -431,7 +431,7 @@ function api_trophy_image($type) {
 				content = '%s',
 				filesize = %d
 				where id = %d",
-			dbesc($p['resource_id']), dbesc(basename($p['filename'])), dbesc($p['mimetype']), intval($p['height']), intval($p['width']), dbescbin($ph->imageString()), strlen($ph->imageString()));
+			dbesc($p['resource_id']), dbesc(basename($p['filename'])), dbesc($p['mimetype']), intval($p['height']), intval($p['width']), dbescbin($ph->imageString()), strlen($ph->imageString()), $x[0]["id"]);
 		} else {
 			$p['created'] = (($arr['created']) ? $arr['created'] : $p['edited']);
 			$r0 = q("INSERT INTO gamerzilla_image
@@ -467,7 +467,7 @@ function api_trophy_image($type) {
 				content = '%s',
 				filesize = %d
 				where id = %d",
-			dbesc($p['resource_id']), dbesc(basename($p['filename'])), dbesc($p['mimetype']), intval($p['height']), intval($p['width']), dbescbin($ph->imageString()), strlen($ph->imageString()));
+			dbesc($p['resource_id']), dbesc(basename($p['filename'])), dbesc($p['mimetype']), intval($p['height']), intval($p['width']), dbescbin($ph->imageString()), strlen($ph->imageString()), $x[0]["id"]);
 		} else {
 			$p['created'] = (($arr['created']) ? $arr['created'] : $p['edited']);
 			$r0 = q("INSERT INTO gamerzilla_image
